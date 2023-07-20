@@ -27,9 +27,9 @@ def get_args():
                         help="The input data dir. Should contain the training files for the CoNLL-2003 NER task.", )
     parser.add_argument("--model_type", default="bert", type=str,
                         help="Model type selected in the list: ")
-    parser.add_argument("--model_name_or_path", default="./outputs/cner_output/bert/", type=str,
+    parser.add_argument("--model_name_or_path", default="./prev_trained_model/bert-base-chinese", type=str,
                         help="Path to pre-trained model or shortcut name selected in the list: ")
-    parser.add_argument("--output_dir", default="./outputs/predict_output/bert/", type=str,
+    parser.add_argument("--output_dir", default="./outputs/cner_output/", type=str,
                         help="The output directory where the model predictions and checkpoints will be written.", )
 
     # Other parameters
@@ -95,8 +95,11 @@ def get_args():
     parser.add_argument("--save_steps", type=int, default=50, help="Save checkpoint every X updates steps.")
     parser.add_argument("--eval_all_checkpoints", action="store_true",
                         help="Evaluate all checkpoints starting with the same prefix as model_name ending and ending with step number", )
-    parser.add_argument("--predict_checkpoints", type=int, default=0,
+
+    # 这里改模型号码
+    parser.add_argument("--predict_checkpoints", type=int, default=1232,
                         help="predict checkpoints starting with the same prefix as model_name ending and ending with step number")
+
     parser.add_argument("--no_cuda", action="store_true", help="Avoid using CUDA when available")
     parser.add_argument("--overwrite_output_dir", action="store_true",
                         help="Overwrite the content of the output directory")
