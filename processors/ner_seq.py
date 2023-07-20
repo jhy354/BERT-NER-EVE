@@ -176,8 +176,8 @@ class CnerProcessor(DataProcessor):
         """See base class."""
         return ["X",'B-CONT','B-EDU','B-LOC','B-NAME','B-ORG','B-PRO','B-RACE','B-TITLE',
                 'I-CONT','I-EDU','I-LOC','I-NAME','I-ORG','I-PRO','I-RACE','I-TITLE',
-                'O','S-NAME','S-ORG','S-RACE',"[START]", "[END]"]
-
+                'O','S-PER','S-ORG','S-RACE',"[START]", "[END]"]
+    
     def _create_examples(self, lines, set_type):
         """Creates examples for the training and dev sets."""
         examples = []
@@ -193,6 +193,14 @@ class CnerProcessor(DataProcessor):
                     labels.append(x.replace('M-','I-'))
                 elif 'E-' in x:
                     labels.append(x.replace('E-', 'I-'))
+                elif "B-PER" in x:
+                    labels.append(x.replace("B-PER", "B-NAME"))
+                elif "I-PER" in x:
+                    labels.append(x.replace("I-PER", "I-NAME"))
+                elif "B-DATE" in x:
+                    labels.append(x.replace("B-DATE", "B-TITLE"))
+                elif "I-DATE" in x:
+                    labels.append(x.replace("I-DATE", "I-TITLE"))
                 else:
                     labels.append(x)
             examples.append(InputExample(guid=guid, text_a=text_a, labels=labels))

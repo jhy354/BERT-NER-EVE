@@ -1,3 +1,5 @@
+# pip install transformers==4.6.1
+
 CURRENT_DIR=`pwd`
 export BERT_BASE_DIR=$CURRENT_DIR/prev_trained_model/bert-base-chinese
 export DATA_DIR=$CURRENT_DIR/datasets

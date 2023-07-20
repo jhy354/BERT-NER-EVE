@@ -208,6 +208,14 @@ class CnerProcessor(DataProcessor):
                     labels.append(x.replace('M-','I-'))
                 elif 'E-' in x:
                     labels.append(x.replace('E-', 'I-'))
+                elif "B-PER" in x:
+                    labels.append(x.replace("B-PER", "B-NAME"))
+                elif "I-PER" in x:
+                    labels.append(x.replace("I-PER", "I-NAME"))
+                elif "B-DATE" in x:
+                    labels.append(x.replace("B-DATE", "B-TITLE"))
+                elif "I-DATE" in x:
+                    labels.append(x.replace("I-DATE", "I-TITLE"))
                 else:
                     labels.append(x)
             subject = get_entities(labels,id2label=None,markup='bios')

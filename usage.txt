@@ -1,0 +1,13 @@
+usage: run_ner_crf.py [-h] --task_name TASK_NAME --data_dir DATA_DIR --model_type MODEL_TYPE --model_name_or_path MODEL_NAME_OR_PATH
+                      --output_dir OUTPUT_DIR [--markup {bios,bio}] [--loss_type {lsr,focal,ce}] [--config_name CONFIG_NAME]
+                      [--tokenizer_name TOKENIZER_NAME] [--cache_dir CACHE_DIR] [--train_max_seq_length TRAIN_MAX_SEQ_LENGTH]
+                      [--eval_max_seq_length EVAL_MAX_SEQ_LENGTH] [--do_train] [--do_eval] [--do_predict] [--evaluate_during_training]
+                      [--do_lower_case] [--do_adv] [--adv_epsilon ADV_EPSILON] [--adv_name ADV_NAME]
+                      [--per_gpu_train_batch_size PER_GPU_TRAIN_BATCH_SIZE] [--per_gpu_eval_batch_size PER_GPU_EVAL_BATCH_SIZE]
+                      [--gradient_accumulation_steps GRADIENT_ACCUMULATION_STEPS] [--learning_rate LEARNING_RATE]
+                      [--crf_learning_rate CRF_LEARNING_RATE] [--weight_decay WEIGHT_DECAY] [--adam_epsilon ADAM_EPSILON]
+                      [--max_grad_norm MAX_GRAD_NORM] [--num_train_epochs NUM_TRAIN_EPOCHS] [--max_steps MAX_STEPS]
+                      [--warmup_proportion WARMUP_PROPORTION] [--logging_steps LOGGING_STEPS] [--save_steps SAVE_STEPS]
+                      [--eval_all_checkpoints] [--predict_checkpoints PREDICT_CHECKPOINTS] [--no_cuda] [--overwrite_output_dir]
+                      [--overwrite_cache] [--seed SEED] [--fp16] [--fp16_opt_level FP16_OPT_LEVEL] [--local_rank LOCAL_RANK]
+                      [--server_ip SERVER_IP] [--server_port SERVER_PORT]

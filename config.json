@@ -1,0 +1,63 @@
+{
+    "model_algorithm": "NER-BiLSTM-CRF",
+    "model_type": "PyTorch",
+    "runtime": "pytorch_1.8.0-cuda_10.2-py_3.7-ubuntu_18.04-x86_64",
+    "apis": [
+        {
+            "protocol": "http",
+            "url": "/",
+            "method": "post",
+            "request": {
+                "Content-type": "multipart/form-data",
+                "data": {
+                    "type": "object",
+                    "properties": {
+                        "input_txt": {
+                            "type": "file"
+                        }
+                    },
+                    "required": ["input_txt"]
+                }
+            },
+            "response": {
+                "Content-type": "multipart/form-data",
+                "data": {
+                    "type": "object",
+                    "properties": {
+                        "result": {
+                            "type": "array",
+                            "items": [{
+                                "type": "string"
+                            }]
+                        }
+                    }
+                }
+            }
+        }
+    ],
+    "dependencies": [
+        {
+            "installer": "pip",
+            "packages": [
+                {
+                    "package_name": "docopt",
+                    "package_version": "0.6.2",
+                    "restraint": "EXACT"
+                }
+            ]
+        },
+        {
+            "installer": "pip",
+            "packages": [
+                {
+                    "package_name": "transformers",
+                    "package_version": "4.6.1",
+                    "restraint": "EXACT"
+                }
+            ]
+        }
+    ]
+}
+
+
+
