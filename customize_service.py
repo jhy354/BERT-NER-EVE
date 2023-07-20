@@ -2,11 +2,13 @@ import os
 import random
 import logging
 import argparse
+import glob
 
 import torch
 from transformers import WEIGHTS_NAME, BertConfig, BertTokenizer
 
 from models.bert_for_ner import BertCrfForNer
+from run_ner_crf import predict
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -16,7 +18,7 @@ try:
 except:
     PTServingBaseService = object
 
-    
+
 def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--task_name", default="cner", type=str,
@@ -26,7 +28,7 @@ def get_args():
     parser.add_argument("--model_type", default="bert", type=str,
                         help="Model type selected in the list: ")
     parser.add_argument("--model_name_or_path", default="./outputs/cner_output/bert/", type=str,
-                        help="Path to pre-trained model or shortcut name selected in the list: " )
+                        help="Path to pre-trained model or shortcut name selected in the list: ")
     parser.add_argument("--output_dir", default="./outputs/predict_output/bert/", type=str,
                         help="The output directory where the model predictions and checkpoints will be written.", )
 
@@ -93,7 +95,7 @@ def get_args():
     parser.add_argument("--save_steps", type=int, default=50, help="Save checkpoint every X updates steps.")
     parser.add_argument("--eval_all_checkpoints", action="store_true",
                         help="Evaluate all checkpoints starting with the same prefix as model_name ending and ending with step number", )
-    parser.add_argument("--predict_checkpoints",type=int, default=0,
+    parser.add_argument("--predict_checkpoints", type=int, default=0,
                         help="predict checkpoints starting with the same prefix as model_name ending and ending with step number")
     parser.add_argument("--no_cuda", action="store_true", help="Avoid using CUDA when available")
     parser.add_argument("--overwrite_output_dir", action="store_true",
@@ -110,7 +112,8 @@ def get_args():
     parser.add_argument("--server_ip", type=str, default="", help="For distant debugging.")
     parser.add_argument("--server_port", type=str, default="", help="For distant debugging.")
     return parser
-    
+
+
 def read_data(filepath):
     sentences = []
     sent = ['[START]']
@@ -125,18 +128,21 @@ def read_data(filepath):
     return sentences
 
 
-def batch_iter(data, batch_size=24, shuffle=True):
-    data_size = len(data)
-    indices = list(range(data_size))
-    if shuffle:
-        random.shuffle(indices)
-    batch_num = (data_size + batch_size - 1) // batch_size
-    for i in range(batch_num):
-        batch = [data[idx] for idx in indices[i * batch_size: (i + 1) * batch_size]]
-        batch = sorted(batch, key=lambda x: len(x), reverse=True)
-        yield batch
-    
-    
+def save_data(data):
+    dataset = list(data.values())[0]
+    out_data = []
+    for line in dataset:
+        for c in line:
+            if c != "[START]" and c != "[END]":
+                out_data.append(c + " O")
+        out_data.append("\n")
+    with open("./datasets/cner/test.char.bmes", "w", encoding="utf-8") as f:
+        for i in out_data:
+            f.write(i)
+            if i != "\n":
+                f.write("\n")
+
+
 class CustomizeService(PTServingBaseService):
     def __init__(self, model_name, model_path):  # model_name, model_path 没用
         self.args = get_args().parse_args()
@@ -152,14 +158,14 @@ class CustomizeService(PTServingBaseService):
                 with open(file_name, "wb") as f:
                     f.write(file_content.read())
                 sentences = read_data(file_name)
-                # sentences = utils.words2indices(sentences, self.sent_vocab)
                 preprocessed_data[file_name] = sentences
-        # print(preprocessed_data)
+        save_data(preprocessed_data)
         return preprocessed_data
 
     def _inference(self, data):
-        config = self.config_class.from_pretrained(self.args.model_name_or_path,num_labels=23,)
-        tokenizer = self.tokenizer_class.from_pretrained(self.args.model_name_or_path, do_lower_case=self.args.do_lower_case)
+        config = self.config_class.from_pretrained(self.args.model_name_or_path, num_labels=23, )
+        tokenizer = self.tokenizer_class.from_pretrained(self.args.model_name_or_path,
+                                                         do_lower_case=self.args.do_lower_case)
 
         checkpoints = [self.args.output_dir]
         checkpoints = list(
@@ -169,10 +175,11 @@ class CustomizeService(PTServingBaseService):
         logger.info("Predict the following checkpoints: %s", checkpoints)
         for checkpoint in checkpoints:
             prefix = checkpoint.split('/')[-1] if checkpoint.find('checkpoint') != -1 else ""
-            model = model_class.from_pretrained(checkpoint, config=config)
+            model = self.model_class.from_pretrained(checkpoint, config=config)
             model.to(self.args.device)
             predict(self.args, model, tokenizer, prefix=prefix)
 
     def _postprocess(self, data) -> dict:
+        # 输出格式是{"result":["x O\n","x B-DATE\n"]}
         logger.info("in postprocess")
         return data

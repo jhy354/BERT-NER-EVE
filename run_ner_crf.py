@@ -11,10 +11,10 @@ from torch.utils.data.distributed import DistributedSampler
 from callback.optimizater.adamw import AdamW
 from callback.lr_scheduler import get_linear_schedule_with_warmup
 from callback.progressbar import ProgressBar
-from tools.common import seed_everything,json_to_text
+from tools.common import seed_everything, json_to_text
 from tools.common import init_logger, logger
 
-from transformers import WEIGHTS_NAME, BertConfig,get_linear_schedule_with_warmup,AdamW, BertTokenizer
+from transformers import WEIGHTS_NAME, BertConfig, get_linear_schedule_with_warmup, AdamW, BertTokenizer
 from models.bert_for_ner import BertCrfForNer
 from processors.utils_ner import get_entities
 from processors.ner_seq import convert_examples_to_features
@@ -27,6 +27,7 @@ MODEL_CLASSES = {
     ## bert ernie bert_wwm bert_wwwm_ext
     'bert': (BertConfig, BertCrfForNer, BertTokenizer),
 }
+
 
 def train(args, train_dataset, model, tokenizer):
     """ Train the model """
@@ -114,8 +115,8 @@ def train(args, train_dataset, model, tokenizer):
     model.zero_grad()
     seed_everything(args.seed)  # Added here for reproductibility (even between python 2 and 3)
     pbar = ProgressBar(n_total=len(train_dataloader), desc='Training', num_epochs=int(args.num_train_epochs))
-    if args.save_steps==-1 and args.logging_steps==-1:
-        args.logging_steps=len(train_dataloader)
+    if args.save_steps == -1 and args.logging_steps == -1:
+        args.logging_steps = len(train_dataloader)
         args.save_steps = len(train_dataloader)
     for epoch in range(int(args.num_train_epochs)):
         pbar.reset()
@@ -276,7 +277,7 @@ def predict(args, model, tokenizer, prefix=""):
             outputs = model(**inputs)
             logits = outputs[0]
             tags = model.crf.decode(logits, inputs['attention_mask'])
-            tags  = tags.squeeze(0).cpu().numpy().tolist()
+            tags = tags.squeeze(0).cpu().numpy().tolist()
         preds = tags[0][1:-1]  # [CLS]XXXX[SEP]
         label_entities = get_entities(preds, args.id2label, args.markup)
         json_d = {}
@@ -292,7 +293,7 @@ def predict(args, model, tokenizer, prefix=""):
     if args.task_name == 'cluener':
         output_submit_file = os.path.join(pred_output_dir, prefix, "test_submit.json")
         test_text = []
-        with open(os.path.join(args.data_dir,"test.json"), 'r') as fr:
+        with open(os.path.join(args.data_dir, "test.json"), 'r') as fr:
             for line in fr:
                 test_text.append(json.loads(line))
         test_submit = []
@@ -317,7 +318,8 @@ def predict(args, model, tokenizer, prefix=""):
                         json_d['label'][tag] = {}
                         json_d['label'][tag][word] = [[start, end]]
             test_submit.append(json_d)
-        json_to_text(output_submit_file,test_submit)
+        json_to_text(output_submit_file, test_submit)
+
 
 def load_and_cache_examples(args, task, tokenizer, data_type='train'):
     if args.local_rank not in [-1, 0] and not evaluate:
@@ -339,7 +341,7 @@ def load_and_cache_examples(args, task, tokenizer, data_type='train'):
             examples = processor.get_train_examples(args.data_dir)
         elif data_type == 'dev':
             examples = processor.get_dev_examples(args.data_dir)
-        else:
+        else:  # test
             examples = processor.get_test_examples(args.data_dir)
         features = convert_examples_to_features(examples=examples,
                                                 tokenizer=tokenizer,
@@ -422,9 +424,9 @@ def main():
         torch.distributed.barrier()  # Make sure only the first process in distributed training will download model & vocab
     args.model_type = args.model_type.lower()
     config_class, model_class, tokenizer_class = MODEL_CLASSES[args.model_type]
-    config = config_class.from_pretrained(args.model_name_or_path,num_labels=num_labels,)
+    config = config_class.from_pretrained(args.model_name_or_path, num_labels=num_labels, )
     tokenizer = tokenizer_class.from_pretrained(args.model_name_or_path,
-                                                do_lower_case=args.do_lower_case,)
+                                                do_lower_case=args.do_lower_case, )
     model = model_class.from_pretrained(args.model_name_or_path, config=config)
     if args.local_rank == 0:
         torch.distributed.barrier()  # Make sure only the first process in distributed training will download model & vocab
