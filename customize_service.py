@@ -1,5 +1,4 @@
 import os
-import random
 import logging
 import argparse
 import glob
@@ -9,6 +8,8 @@ from transformers import WEIGHTS_NAME, BertConfig, BertTokenizer
 
 from models.bert_for_ner import BertCrfForNer
 from run_ner_crf import predict
+from processors.ner_seq import CnerProcessor
+# from tools.common import prepare_device
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -29,7 +30,7 @@ def get_args():
                         help="Model type selected in the list: ")
     parser.add_argument("--model_name_or_path", default="./prev_trained_model/bert-base-chinese", type=str,
                         help="Path to pre-trained model or shortcut name selected in the list: ")
-    parser.add_argument("--output_dir", default="./outputs/cner_output/", type=str,
+    parser.add_argument("--output_dir", default="./outputs/cner_output/bert/", type=str,
                         help="The output directory where the model predictions and checkpoints will be written.", )
 
     # Other parameters
@@ -154,6 +155,16 @@ class CustomizeService(PTServingBaseService):
         }
         self.config_class, self.model_class, self.tokenizer_class = MODEL_CLASSES["bert"]
 
+        # init args
+        self.args.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.args.do_eval = False
+        self.args.do_train = False
+        self.args.do_predict = True
+        processor = CnerProcessor()
+        label_list = processor.get_labels()
+        self.args.id2label = {i: label for i, label in enumerate(label_list)}
+        self.args.label2id = {label: i for i, label in enumerate(label_list)}
+
     def _preprocess(self, data):
         preprocessed_data = {}
         for _, v in data.items():
@@ -179,6 +190,7 @@ class CustomizeService(PTServingBaseService):
         for checkpoint in checkpoints:
             prefix = checkpoint.split('/')[-1] if checkpoint.find('checkpoint') != -1 else ""
             model = self.model_class.from_pretrained(checkpoint, config=config)
+            # device = prepare_device()
             model.to(self.args.device)
             predict(self.args, model, tokenizer, prefix=prefix)
 
