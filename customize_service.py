@@ -2,6 +2,7 @@ import os
 import logging
 import argparse
 import glob
+import json
 
 import torch
 from transformers import WEIGHTS_NAME, BertConfig, BertTokenizer
@@ -9,7 +10,6 @@ from transformers import WEIGHTS_NAME, BertConfig, BertTokenizer
 from models.bert_for_ner import BertCrfForNer
 from run_ner_crf import predict
 from processors.ner_seq import CnerProcessor
-# from tools.common import prepare_device
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -18,6 +18,8 @@ try:
     from model_service.pytorch_model_service import PTServingBaseService
 except:
     PTServingBaseService = object
+
+MODEL_NUM = 1232
 
 
 def get_args():
@@ -98,7 +100,7 @@ def get_args():
                         help="Evaluate all checkpoints starting with the same prefix as model_name ending and ending with step number", )
 
     # 这里改模型号码
-    parser.add_argument("--predict_checkpoints", type=int, default=1232,
+    parser.add_argument("--predict_checkpoints", type=int, default=MODEL_NUM,
                         help="predict checkpoints starting with the same prefix as model_name ending and ending with step number")
 
     parser.add_argument("--no_cuda", action="store_true", help="Avoid using CUDA when available")
@@ -147,6 +149,36 @@ def save_data(data):
                 f.write("\n")
 
 
+def get_res():
+    res = {"result": []}
+    words = []
+    line = []
+    with open("./datasets/cner/test.char.bmes", "r", encoding="utf-8") as f:
+        for i in f.readlines():
+            if i != "\n":
+                line.append(i[0])
+            else:
+                words.append(line)
+                line = []
+
+    tags = []
+    with open(f"./outputs/cner_output/bert/checkpoint-{MODEL_NUM}/test_prediction.json", "r", encoding="utf-8") as f:
+        for i in f.readlines():
+            d = json.loads(i)["tag_seq"]
+            tags.append(d.split(" "))
+
+    assert len(words) == len(tags)
+    for i in range(len(tags)):
+        for j in range(len(words[i])):
+            res["result"].append(f"{words[i][j]} {tags[i][j]}\n")
+        res["result"].append("\n")
+
+    # with open("./res.txt", "w", encoding="utf-8") as f:
+    #     f.writelines(res.get("result"))
+
+    return res
+
+
 class CustomizeService(PTServingBaseService):
     def __init__(self, model_name, model_path):  # model_name, model_path 没用
         self.args = get_args().parse_args()
@@ -193,8 +225,10 @@ class CustomizeService(PTServingBaseService):
             # device = prepare_device()
             model.to(self.args.device)
             predict(self.args, model, tokenizer, prefix=prefix)
+        return data
 
     def _postprocess(self, data) -> dict:
         # 输出格式是{"result":["x O\n","x B-DATE\n"]}
         logger.info("in postprocess")
+        data = get_res()
         return data
