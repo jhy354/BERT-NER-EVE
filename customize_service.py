@@ -142,7 +142,18 @@ def save_data(data):
             if c != "[START]" and c != "[END]":
                 out_data.append(c + " O")
         out_data.append("\n")
+
     with open("./datasets/cner/test.char.bmes", "w", encoding="utf-8") as f:
+        f.write("N O")
+        f.write("\n")
+        f.write("U O")
+        f.write("\n")
+        f.write("L O")
+        f.write("\n")
+        f.write("L O")
+        f.write("\n")
+        f.write("\n")
+
         for i in out_data:
             f.write(i)
             if i != "\n":
@@ -160,6 +171,7 @@ def get_res():
             else:
                 words.append(line)
                 line = []
+    words = words[1:]
 
     tags = []
     with open(f"./outputs/cner_output/bert/checkpoint-{MODEL_NUM}/test_prediction.json", "r", encoding="utf-8") as f:
@@ -167,10 +179,24 @@ def get_res():
             d = json.loads(i)["tag_seq"]
             tags.append(d.split(" "))
 
+    print("-"*20)
+    print(f"len(words): {len(words)}\nlen(tags): {len(tags)}")
+    print("-"*20)
     assert len(words) == len(tags)
+
     for i in range(len(tags)):
         for j in range(len(words[i])):
-            res["result"].append(f"{words[i][j]} {tags[i][j]}\n")
+            tag = tags[i][j]
+            if tags[i][j] == "B-TITLE":
+                tag = "B-DATE"
+            elif tags[i][j] == "I-TITLE":
+                tag = "I-DATE"
+            elif tags[i][j] == "B-NAME":
+                tag = "B-PER"
+            elif tags[i][j] == "I-NAME":
+                tag = "I-PER"
+
+            res["result"].append(f"{words[i][j]} {tag}\n")
         res["result"].append("\n")
 
     # with open("./res.txt", "w", encoding="utf-8") as f:
@@ -205,6 +231,7 @@ class CustomizeService(PTServingBaseService):
                     f.write(file_content.read())
                 sentences = read_data(file_name)
                 preprocessed_data[file_name] = sentences
+        print(preprocessed_data)
         save_data(preprocessed_data)
         return preprocessed_data
 
