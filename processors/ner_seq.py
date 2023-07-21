@@ -177,6 +177,9 @@ class CnerProcessor(DataProcessor):
         """See base class."""
         return self._create_examples(self._read_text(os.path.join(data_dir, "dev.char.bmes")), "dev")
 
+    def get_test_examples_from_data(self, data):
+        return self._create_examples(data)
+
     def get_test_examples(self, data_dir):
         """See base class."""
         return self._create_examples(self._read_text(os.path.join(data_dir, "test.char.bmes")), "test")

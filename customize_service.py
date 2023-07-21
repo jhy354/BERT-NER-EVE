@@ -134,79 +134,82 @@ def read_data(filepath):
     return sentences
 
 
-def save_data(data):
-    dataset = list(data.values())[0]
-    out_data = []
-    for line in dataset:
-        for c in line:
-            if c != "[START]" and c != "[END]":
-                out_data.append(c + " O")
-        out_data.append("\n")
-
-    with open("./datasets/cner/test.char.bmes", "w", encoding="utf-8") as f:
-        f.write("N O")
-        f.write("\n")
-        f.write("U O")
-        f.write("\n")
-        f.write("L O")
-        f.write("\n")
-        f.write("L O")
-        f.write("\n")
-        f.write("\n")
-
-        for i in out_data:
-            f.write(i)
-            if i != "\n":
-                f.write("\n")
-
-
-def get_res():
-    res = {"result": []}
-    words = []
-    line = []
-    with open("./datasets/cner/test.char.bmes", "r", encoding="utf-8") as f:
-        for i in f.readlines():
-            if i != "\n":
-                line.append(i[0])
-            else:
-                words.append(line)
-                line = []
-    words = words[1:]
-
-    tags = []
-    with open(f"./outputs/cner_output/bert/checkpoint-{MODEL_NUM}/test_prediction.json", "r", encoding="utf-8") as f:
-        for i in f.readlines():
-            d = json.loads(i)["tag_seq"]
-            tags.append(d.split(" "))
-
-    print("-"*20)
-    print(f"len(words): {len(words)}\nlen(tags): {len(tags)}")
-    print("-"*20)
-    assert len(words) == len(tags)
-
-    for i in range(len(tags)):
-        for j in range(len(words[i])):
-            tag = tags[i][j]
-            if tags[i][j] == "B-TITLE":
-                tag = "B-DATE"
-            elif tags[i][j] == "I-TITLE":
-                tag = "I-DATE"
-            elif tags[i][j] == "B-NAME":
-                tag = "B-PER"
-            elif tags[i][j] == "I-NAME":
-                tag = "I-PER"
-
-            res["result"].append(f"{words[i][j]} {tag}\n")
-        res["result"].append("\n")
-
-    # with open("./res.txt", "w", encoding="utf-8") as f:
-    #     f.writelines(res.get("result"))
-
-    return res
-
-
 class CustomizeService(PTServingBaseService):
+
+    def save_data(self, data):
+        dataset = list(data.values())[0]
+        out_data = []
+        for line in dataset:
+            for c in line:
+                if c != "[START]" and c != "[END]":
+                    out_data.append(c + " O")
+            out_data.append("\n")
+
+        with open(os.path.join(self.code_url, "datasets/cner/test.char.bmes"), "w", encoding="utf-8") as f:
+            f.write("N O")
+            f.write("\n")
+            f.write("U O")
+            f.write("\n")
+            f.write("L O")
+            f.write("\n")
+            f.write("L O")
+            f.write("\n")
+            f.write("\n")
+
+            for i in out_data:
+                f.write(i)
+                if i != "\n":
+                    f.write("\n")
+
+    def get_res(self):
+        res = {"result": []}
+        words = []
+        line = []
+        # print("!!!!!!!!!!!!!!!!!!!!")
+        # print(os.path.join(self.code_url, "datasets/cner/test.char.bmes"))
+        with open(os.path.join(self.code_url, "datasets/cner/test.char.bmes"), "r", encoding="utf-8") as f:
+            for i in f.readlines():
+                if i != "\n":
+                    line.append(i[0])
+                else:
+                    words.append(line)
+                    line = []
+        words = words[1:]
+
+        tags = []
+        with open(os.path.join(self.code_url, f"outputs/cner_output/bert/checkpoint-{MODEL_NUM}/test_prediction.json"), "r", encoding="utf-8") as f:
+            for i in f.readlines():
+                d = json.loads(i)["tag_seq"]
+                tags.append(d.split(" "))
+
+        print("-" * 20)
+        print(f"len(words): {len(words)}\nlen(tags): {len(tags)}")
+        print("-" * 20)
+        assert len(words) == len(tags)
+
+        for i in range(len(tags)):
+            for j in range(len(words[i])):
+                tag = tags[i][j]
+                if tags[i][j] == "B-TITLE":
+                    tag = "B-DATE"
+                elif tags[i][j] == "I-TITLE":
+                    tag = "I-DATE"
+                elif tags[i][j] == "B-NAME":
+                    tag = "B-PER"
+                elif tags[i][j] == "I-NAME":
+                    tag = "I-PER"
+
+                res["result"].append(f"{words[i][j]} {tag}\n")
+            res["result"].append("\n")
+
+        # with open(os.path.join(self.code_url, "ress.txt"), "w", encoding="utf-8") as f:
+        #     f.writelines(res.get("result"))
+
+        # print(res)
+        return res
+
     def __init__(self, model_name, model_path):  # model_name, model_path 没用
+        self.code_url = os.path.dirname(os.path.abspath(__file__))
         self.args = get_args().parse_args()
         MODEL_CLASSES = {
             'bert': (BertConfig, BertCrfForNer, BertTokenizer),
@@ -214,6 +217,10 @@ class CustomizeService(PTServingBaseService):
         self.config_class, self.model_class, self.tokenizer_class = MODEL_CLASSES["bert"]
 
         # init args
+        self.args.data_dir = os.path.join(self.code_url, "datasets/cner/")
+        self.args.model_name_or_path = os.path.join(self.code_url, "prev_trained_model/bert-base-chinese")
+        self.args.output_dir = os.path.join(self.code_url, "outputs/cner_output/bert/")
+
         self.args.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.args.do_eval = False
         self.args.do_train = False
@@ -232,7 +239,7 @@ class CustomizeService(PTServingBaseService):
                 sentences = read_data(file_name)
                 preprocessed_data[file_name] = sentences
         print(preprocessed_data)
-        save_data(preprocessed_data)
+        self.save_data(preprocessed_data)
         return preprocessed_data
 
     def _inference(self, data):
@@ -257,5 +264,5 @@ class CustomizeService(PTServingBaseService):
     def _postprocess(self, data) -> dict:
         # 输出格式是{"result":["x O\n","x B-DATE\n"]}
         logger.info("in postprocess")
-        data = get_res()
+        data = self.get_res()
         return data
