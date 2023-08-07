@@ -4,7 +4,7 @@ BERT for Chinese NER.
 
 **update**：其他一些可以参考,包括Biaffine、GlobalPointer等:[examples](https://github.com/lonePatient/TorchBlocks/tree/master/examples)
 
-###适配了customize_service.py, 可以部署到华为云线上AI服务
+### 适配了customize_service.py, 可以部署到华为云线上AI服务
 
 ### dataset list
 
